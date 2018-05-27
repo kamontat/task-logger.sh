@@ -2,9 +2,9 @@
 
 shell=$(ps -p $$ | grep sh | sed 's/.* -*//')
 if [ "$shell" = "sh" ]; then
-  . task-logger.sh
+	. task-logger.sh
 else
-  source task-logger.sh
+	source task-logger.sh
 fi
 
 info "Hello There"
@@ -21,8 +21,16 @@ working -n "Taking a nap"
 log_cmd sleep1 sleep 3 || ko
 
 space_print() {
-  printf " "
+	printf " "
 }
+crit() {
+	sleep 1
+	printf "Hello world 1"
+	echo
+	echo "This log from critical task"
+	sleep 1
+}
+
 WORKING=space_print
 WORKING_END=true
 
@@ -36,6 +44,6 @@ WORKING=turning_circle
 WORKING_END=turning_circle_end
 
 working -n "This is a critical task"
-log_cmd -c crit sleep 1 || warn
+log_cmd -c crit crit || warn
 
 finish

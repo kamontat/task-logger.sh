@@ -24,6 +24,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# task-logger.sh 1.3.4 - zsh and bash fancy task logging
+# Copyright (C) 2018 Kamontat Chantrachirathumrong
+# Last modification 2018-05-27
+#
+# https://github.com/kamontat/task-logger.sh
+#
+# Inherit Previous License
+
+# Custom Variable
+# TMP_DIR => temp directory for placing log directory (default=/tmp)
+# LOG_PREFIX => log directory prefix (default=task-logger)
+
 # Counting for errors
 ERRORS=0
 # Counting for warnings
@@ -38,141 +50,141 @@ KILLED_SYMBOL="☠"
 
 # Set color variables. They can be overrided.
 set_colors() {
-  RESET_COLOR="[0m"
-  IMPORTANT_COLOR="[104;30m"
-  WARNING_COLOR="[33m"
-  GOOD_COLOR="[32m"
-  BAD_COLOR="[31m"
-  INFO_COLOR="[90m"
-  ERROR_COLOR="[101m"
-  WORKING_COLOR="[94m"
-  END_GOOD_COLOR="[92m"
-  END_BAD_COLOR="[91m"
-  END_WARNING_COLOR="[93m"
+	RESET_COLOR="[0m"
+	IMPORTANT_COLOR="[104;30m"
+	WARNING_COLOR="[33m"
+	GOOD_COLOR="[32m"
+	BAD_COLOR="[31m"
+	INFO_COLOR="[90m"
+	ERROR_COLOR="[101m"
+	WORKING_COLOR="[94m"
+	END_GOOD_COLOR="[92m"
+	END_BAD_COLOR="[91m"
+	END_WARNING_COLOR="[93m"
 }
 
 # Unset colors
 no_colors() {
-  RESET_COLOR=
-  IMPORTANT_COLOR=
-  WARNING_COLOR=
-  GOOD_COLOR=
-  BAD_COLOR=
-  INFO_COLOR=
-  ERROR_COLOR=
-  WORKING_COLOR=
-  END_GOOD_COLOR=
-  END_BAD_COLOR=
-  END_WARNING_COLOR=
+	RESET_COLOR=
+	IMPORTANT_COLOR=
+	WARNING_COLOR=
+	GOOD_COLOR=
+	BAD_COLOR=
+	INFO_COLOR=
+	ERROR_COLOR=
+	WORKING_COLOR=
+	END_GOOD_COLOR=
+	END_BAD_COLOR=
+	END_WARNING_COLOR=
 }
 
 show_cursor() {
-  echo -n "[?25h"
+	echo -n "[?25h"
 }
 
 hide_cursor() {
-  echo -n "[?25l"
+	echo -n "[?25l"
 }
 
 # https://github.com/posva/pretty-hrtime.sh
 _desc=(d:86400:day h:3600:hour m:60:minute s:1:second ms:1000000:millisecond μs:1000:microsecond ns:1:nanosecond)
 ptime() {
-  local result s ns amount unit convert lconvert verbose tmp_str long
-  for i in "$@"; do
-    case $i in
-      -v|--verbose)
-        verbose=YES
-        shift
-        ;;
-      -l|--long)
-        long=YES
-        shift
-        ;;
-      -[a-zA-Z]|--*)
-        echo "[ptime] Option $i doesn't exists" >&2
-        shift
-        ;;
-    esac
-  done
-  s="$1"
-  ns="$2"
-  for desc in ${_desc[@]}; do
-    convert=$(echo "$desc" | cut -d: -f2)
-    unit=$(echo "$desc" | cut -d: -f1)
-    # Use the seconds or the nanoseconds amount
-    if echo "$unit" | grep '.s$' > /dev/null; then
-      amount="$ns"
-    else
-      amount="$s"
-    fi
-    # Remove any extra time already counted
-    if [[ "$unit" != d && "$unit" != ms ]]; then
-      (( amount %= lconvert ))
-    fi
-    (( val = (100 * amount) /  convert ))
-    if [[ "$unit" = s ]]; then
-      (( val += ns / 10000000 ))
-    fi
-    if [[ "$val" -ge 100 ]]; then
-      # Don't print to many decimals
-      if [[ "$long" = YES || "$val" -ge 1000 ]]; then
-        (( val /= 100 ))
-        tmp_str="$val"
-      else
-        # We need a tmp var because val is treated as a number
-        tmp_str=$(echo "$val" | sed -e 's/..$/.&/' -e 's/^.$/.0&/' -e 's/\.0*$//' -e 's/00*$//')
-        if [[ -z "$tmp_str" ]]; then
-          tmp_str=0
-        fi
-      fi
-      if [[ -n "$result" ]]; then
-        result="$result "
-      fi
-      if [[ "$verbose" = YES ]]; then
-        unit=$(echo "$desc" | cut -d: -f3)
-      fi
-      result="${result}${tmp_str} $unit"
-      if [[ "$verbose" = YES && "$tmp_str" != 1 ]]; then
-        result="${result}s"
-      fi
-      if [[ -z "$long" ]]; then
-        break
-      fi
-    fi
-    # Save value for next iteration
-    lconvert="$convert"
-  done
+	local result s ns amount unit convert lconvert verbose tmp_str long
+	for i in "$@"; do
+		case $i in
+		-v | --verbose)
+			verbose=YES
+			shift
+			;;
+		-l | --long)
+			long=YES
+			shift
+			;;
+		-[a-zA-Z] | --*)
+			echo "[ptime] Option $i doesn't exists" >&2
+			shift
+			;;
+		esac
+	done
+	s="$1"
+	ns="$2"
+	for desc in ${_desc[@]}; do
+		convert=$(echo "$desc" | cut -d: -f2)
+		unit=$(echo "$desc" | cut -d: -f1)
+		# Use the seconds or the nanoseconds amount
+		if echo "$unit" | grep '.s$' >/dev/null; then
+			amount="$ns"
+		else
+			amount="$s"
+		fi
+		# Remove any extra time already counted
+		if [[ "$unit" != d && "$unit" != ms ]]; then
+			((amount %= lconvert))
+		fi
+		((val = (100 * amount) / convert))
+		if [[ "$unit" == s ]]; then
+			((val += ns / 10000000))
+		fi
+		if [[ "$val" -ge 100 ]]; then
+			# Don't print to many decimals
+			if [[ "$long" == YES || "$val" -ge 1000 ]]; then
+				((val /= 100))
+				tmp_str="$val"
+			else
+				# We need a tmp var because val is treated as a number
+				tmp_str=$(echo "$val" | sed -e 's/..$/.&/' -e 's/^.$/.0&/' -e 's/\.0*$//' -e 's/00*$//')
+				if [[ -z "$tmp_str" ]]; then
+					tmp_str=0
+				fi
+			fi
+			if [[ -n "$result" ]]; then
+				result="$result "
+			fi
+			if [[ "$verbose" == YES ]]; then
+				unit=$(echo "$desc" | cut -d: -f3)
+			fi
+			result="${result}${tmp_str} $unit"
+			if [[ "$verbose" == YES && "$tmp_str" != 1 ]]; then
+				result="${result}s"
+			fi
+			if [[ -z "$long" ]]; then
+				break
+			fi
+		fi
+		# Save value for next iteration
+		lconvert="$convert"
+	done
 
-  if [[ -z "$result" ]]; then
-    if [[ -z "$verbose" ]]; then
-      echo "0 s"
-    else
-      echo "0 seconds"
-    fi
-  else
-    echo "$result"
-  fi
+	if [[ -z "$result" ]]; then
+		if [[ -z "$verbose" ]]; then
+			echo "0 s"
+		else
+			echo "0 seconds"
+		fi
+	else
+		echo "$result"
+	fi
 }
 
 # Parse options and args and place them in two global variables
 # args and opts
 # INTERNAL FUNCTION
 parse_opt() {
-  local io ia
-  args=() # array
-  opts=()
-  io=1
-  ia=1
-  while [[ "$#" > 0 ]]; do #[[ "$1" =~ "$re" ]]; do
-    if [[ "$1" =~ $re ]]; then
-      opts[$io]=$1
-      ((io++))
-    else
-      args[$ia]="$1"
-      ((ia++))
-    fi
-    shift
-  done
+	local io ia
+	args=() # array
+	opts=()
+	io=1
+	ia=1
+	while [[ "$#" > 0 ]]; do #[[ "$1" =~ "$re" ]]; do
+		if [[ "$1" =~ $re ]]; then
+			opts[$io]=$1
+			((io++))
+		else
+			args[$ia]="$1"
+			((ia++))
+		fi
+		shift
+	done
 }
 
 # WORKING should be some kind of loop. It is executed whenever a command
@@ -192,99 +204,96 @@ DOT_SECONDS=1
 # If you want to use this function, set WORKING to dot_working and
 # WORKING_END to true
 dot_working() {
-  while true; do
-    echo -n '.'
-    sleep $DOT_SECONDS
-  done
+	while true; do
+		echo -n '.'
+		sleep $DOT_SECONDS
+	done
 }
 
 # Prints a turning circle with unicode to show work is in progress
 turning_circle() {
-  local p n symbols
-  p=1
-  n=4
-  symbols=()
-  symbols[1]=" ◐ "
-  symbols[2]=" ◓ "
-  symbols[3]=" ◑ "
-  symbols[4]=" ◒ "
+	local p n symbols
+	p=1
+	n=4
+	symbols=()
+	symbols[1]=" ◐ "
+	symbols[2]=" ◓ "
+	symbols[3]=" ◑ "
+	symbols[4]=" ◒ "
 
-  #trap 'printf "\033[5D "; return' SIGINT
-  #trap 'printf "\033[3D "; return' SIGHUP SIGTERM
+	#trap 'printf "\033[5D "; return' SIGINT
+	#trap 'printf "\033[3D "; return' SIGHUP SIGTERM
 
-  printf "   "
-  while true; do
-    printf "\033[3D${symbols[$p]}"
-    ((p++))
-    if [[ "$p" > "$n" ]]; then
-      # :nocov:
-      p=1
-      # :nocov:
-    fi
-    sleep 0.2
-  done
+	printf "   "
+	while true; do
+		printf "\033[3D${symbols[$p]}"
+		((p++))
+		if [[ "$p" > "$n" ]]; then
+			# :nocov:
+			p=1
+			# :nocov:
+		fi
+		sleep 0.2
+	done
 }
 
 turning_circle_end() {
-  printf "\033[3D "
+	printf "\033[3D "
 }
 
 # Check if perl is available
 if perl -e 'use Time::HiRes qw( gettimeofday );' 2>&1 >/dev/null; then
-  PERL=YES
+	PERL=YES
 fi
 
 TIMER_INIT=()
 if [[ -n "$PERL" ]]; then
-  # Little timer helper using perl to have microseconds precision even in OS X
-  # ex reset_timer 1 # set timer with id 1 at 0s
-  reset_timer() {
-    TIMER_INIT[$1]=$(perl -e 'use Time::HiRes qw( gettimeofday ); my ($a, $b) = gettimeofday; $ts = $a; $tn = $b * 1000; print "$ts $tn";')
-  }
+	# Little timer helper using perl to have microseconds precision even in OS X
+	# ex reset_timer 1 # set timer with id 1 at 0s
+	reset_timer() {
+		TIMER_INIT[$1]=$(perl -e 'use Time::HiRes qw( gettimeofday ); my ($a, $b) = gettimeofday; $ts = $a; $tn = $b * 1000; print "$ts $tn";')
+	}
 
-  # get the current value of a timer without resetting it
-  # ex get_timer 1 get elapsed time since last reset_timer 1 call
-  get_timer() {
-    local elapsed seconds nanoseconds
-    seconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 1)
-    nanoseconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 2)
-    elapsed=$(perl -e 'use Time::HiRes qw( gettimeofday ); my ($a, $b) = gettimeofday; $ts = $a - '"$seconds"'; $tn = $b * 1000 - '"$nanoseconds"'; if($ts == 1 && $tn < 0) {$tn = $ts * 100000000 - $tn; $ts = 0;} print "$ts $tn";')
-    echo "$elapsed"
-  }
+	# get the current value of a timer without resetting it
+	# ex get_timer 1 get elapsed time since last reset_timer 1 call
+	get_timer() {
+		local elapsed seconds nanoseconds
+		seconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 1)
+		nanoseconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 2)
+		elapsed=$(perl -e 'use Time::HiRes qw( gettimeofday ); my ($a, $b) = gettimeofday; $ts = $a - '"$seconds"'; $tn = $b * 1000 - '"$nanoseconds"'; if($ts == 1 && $tn < 0) {$tn = $ts * 100000000 - $tn; $ts = 0;} print "$ts $tn";')
+		echo "$elapsed"
+	}
 elif date '+%s %N' 2>&1 >/dev/null; then
-  reset_timer() {
-    TIMER_INIT[$1]=$(date '+%s %N' | sed 's/ 00*/ /')
-  }
-  get_timer() {
-    local elapsed seconds nanoseconds
-    seconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 1)
-    nanoseconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 2)
-    ((
-      seconds = $(date '+%s') - seconds,
-      nanoseconds = $(date '+%N' | sed 's/^00*//') - nanoseconds
-    ))
-    if [[ "$seconds" = 1 && "$nanoseconds" < 0 ]]; then
-      ((
-        nanoseconds = seconds * 100000000 - nanoseconds,
-        seconds = 0
-      ))
-    fi
-    echo "$seconds $nanoseconds"
-  }
+	reset_timer() {
+		TIMER_INIT[$1]=$(date '+%s %N' | sed 's/ 00*/ /')
+	}
+	get_timer() {
+		local elapsed seconds nanoseconds
+		seconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 1)
+		nanoseconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 2)
+		((seconds = $(date '+%s') - seconds, nanoseconds = $(date '+%N' | sed 's/^00*//') - nanoseconds))
+
+		if [[ "$seconds" == 1 && "$nanoseconds" < 0 ]]; then
+			((nanoseconds = seconds * 100000000 - nanoseconds, seconds = 0))
+
+		fi
+
+		echo "$seconds $nanoseconds"
+	}
 else
-  reset_timer() {
-    TIMER_INIT[$1]="$(date '+%s')"
-  }
-  get_timer() {
-    local elapsed seconds nanoseconds
-    seconds="${TIMER_INIT[$1]}"
-    nanoseconds=0
-    (( seconds = $(date '+%s') - seconds ))
-    if [[ "$seconds" < 0 ]]; then
-      seconds=0
-    fi
-    echo "$seconds $nanoseconds"
-  }
+	reset_timer() {
+		TIMER_INIT[$1]="$(date '+%s')"
+	}
+	get_timer() {
+		local elapsed seconds nanoseconds
+		seconds="${TIMER_INIT[$1]}"
+		nanoseconds=0
+		((seconds = $(date '+%s') - seconds))
+		if [[ "$seconds" < 0 ]]; then
+			seconds=0
+		fi
+		echo "$seconds $nanoseconds"
+	}
 fi
 
 # simple regex to parse options
@@ -293,36 +302,36 @@ re='^--?[a-zA-Z0-9]+'
 # Important message that must be read and contains useful information
 # Accepts same options as echo
 important() {
-  parse_opt "$@"
-  echo ${opts[@]} "${IMPORTANT_COLOR}${args[@]}${RESET_COLOR}"
+	parse_opt "$@"
+	echo ${opts[@]} "${IMPORTANT_COLOR}${args[@]}${RESET_COLOR}"
 }
 
 # Warning message in yellow
 # Accepts same options as echo
 warning() {
-  parse_opt "$@"
-  echo ${opts[@]} "${WARNING_COLOR}${args[@]}${RESET_COLOR}"
+	parse_opt "$@"
+	echo ${opts[@]} "${WARNING_COLOR}${args[@]}${RESET_COLOR}"
 }
 
 # Print a message in green
 # Accepts same options as echo
 good() {
-  parse_opt "$@"
-  echo ${opts[@]} "${GOOD_COLOR}${args[@]}${RESET_COLOR}"
+	parse_opt "$@"
+	echo ${opts[@]} "${GOOD_COLOR}${args[@]}${RESET_COLOR}"
 }
 
 # Print a message in red
 # Accepts same options as echo
 bad() {
-  parse_opt "$@"
-  echo ${opts[@]} "${BAD_COLOR}${args[@]}${RESET_COLOR}"
+	parse_opt "$@"
+	echo ${opts[@]} "${BAD_COLOR}${args[@]}${RESET_COLOR}"
 }
 
 # Print a message in gray
 # Accepts same options as echo
 info() {
-  parse_opt "$@"
-  echo ${opts[@]} "${INFO_COLOR}${args[@]}${RESET_COLOR}"
+	parse_opt "$@"
+	echo ${opts[@]} "${INFO_COLOR}${args[@]}${RESET_COLOR}"
 }
 
 # Error message with Red background
@@ -330,73 +339,73 @@ info() {
 # Accepts same options as echo
 # Always return 1 (error)
 error() {
-  parse_opt "$@"
-  echo ${opts[@]} "${ERROR_COLOR}${args[@]}${RESET_COLOR}"
-  return 1
+	parse_opt "$@"
+	echo ${opts[@]} "${ERROR_COLOR}${args[@]}${RESET_COLOR}"
+	return 1
 }
 
 # Simple check mark. Increment the number of successes
 ok() {
-  ((SUCCESS++))
-  echo "${GOOD_COLOR} ${SUCCESS_SYMBOL} ${RESET_COLOR}"
+	((SUCCESS++))
+	echo "${GOOD_COLOR} ${SUCCESS_SYMBOL} ${RESET_COLOR}"
 }
 
 # Simple cross mark. Increment the number of errors
 # Always return 1 (error)
 ko() {
-  echo "${BAD_COLOR} ${ERROR_SYMBOL} ${RESET_COLOR}"
-  ((ERRORS++))
-  return 1
+	echo "${BAD_COLOR} ${ERROR_SYMBOL} ${RESET_COLOR}"
+	((ERRORS++))
+	return 1
 }
 
 # Simple warning mark. Increment the number of warnings
 warn() {
-  ((WARNINGS++))
-  echo "${WARNING_COLOR} ${WARNING_SYMBOL} ${RESET_COLOR}"
+	((WARNINGS++))
+	echo "${WARNING_COLOR} ${WARNING_SYMBOL} ${RESET_COLOR}"
 }
 
 # Helper message that prints time in gray and a message in blue
 # This should be used before log_cmd
 working() {
-  info -n "[$(date +%H:%M:%S)] "
-  parse_opt "$@"
-  echo ${opts[@]} "${WORKING_COLOR}${args[@]}${RESET_COLOR}"
+	info -n "[$(date +%H:%M:%S)] "
+	parse_opt "$@"
+	echo ${opts[@]} "${WORKING_COLOR}${args[@]}${RESET_COLOR}"
 }
 
 # Stops the dot_working function and print elapsed time with a mark depending
 # whether the previously ran command ended correctly.
 # INTERNAL FUNCTION
 cleanup() {
-  local elapsed
-  while [[ "$DOT" == "" ]]; do
-    # :nocov:
-    sleep 1
-    # :nocov:
-  done
-  kill $DOT 2>/dev/null
-  wait $DOT 2>/dev/null
-  DOT=
-  if [[ "$1" != -99 ]]; then
-    $WORKING_END
-  fi
-  elapsed="$(get_timer 1)"
-  echo -n "[$(ptime $(echo "$elapsed"))]"
-  if [[ "$1" == 0 ]]; then
-    ok
-  fi
+	local elapsed
+	while [[ "$DOT" == "" ]]; do
+		# :nocov:
+		sleep 1
+		# :nocov:
+	done
+	kill $DOT 2>/dev/null
+	wait $DOT 2>/dev/null
+	DOT=
+	if [[ "$1" != -99 ]]; then
+		$WORKING_END
+	fi
+	elapsed="$(get_timer 1)"
+	echo -n "[$(ptime $(echo "$elapsed"))]"
+	if [[ "$1" == 0 ]]; then
+		ok
+	fi
 }
 
 # Function called when the user kills the script
 killed() {
-  # clean ^C
-  printf "\033[2D"
-  #kill 0
-  if [[ "$DOT" != "" ]]; then
-    cleanup -99
-  fi
-  bad " ${KILLED_SYMBOL} "
-  finish
-  exit 1
+	# clean ^C
+	printf "\033[2D"
+	#kill 0
+	if [[ "$DOT" != "" ]]; then
+		cleanup -99
+	fi
+	bad " ${KILLED_SYMBOL} "
+	finish
+	exit 1
 }
 
 # Main command to run a task and log the output
@@ -411,92 +420,92 @@ killed() {
 # the file already exists. You should always use this option if you don't need
 # to save the output of a command ran inside a loop.
 log_cmd() {
-  local cmd critical p name p_cmd i overwrite tmp
-  reset_timer 1
-  $WORKING &
-  DOT=$!
-  critical=
-  overwrite=
-  for i in "$@"; do
-    case $i in
-      -c|--critical)
-        critical=YES
-        shift
-        ;;
-      -o|--overwrite)
-        overwrite=YES
-        shift
-        ;;
-      -[a-zA-Z0-9]|--*)
-        error "[task-logger] Option $i doesn't exists for log_cmd"
-        shift
-        ;;
-      *)
-        # We got to the command
-        break
-      ;;
-    esac
-  done
-  name="$1"
-  # check if name can be be used as a file
-  i=0
-  if [[ -z "$overwrite" ]]; then
-    tmp="$name"
-    while [[ -f "${LOG_DIR}/${name}.out" || -f "${LOG_DIR}/${name}.err" ]]; do
-      ((i++))
-      name="$tmp-$i"
-    done
-  fi
-  cmd="$2"
-  shift
-  shift
-  if [[ "$critical" == YES ]]; then
-    $cmd "$@" > ${LOG_DIR}/${name}.out 2> ${LOG_DIR}/${name}.err &
-    p_cmd=$!
-    wait $p_cmd 2>/dev/null
-    p=$?
-    cleanup $p
-    if [[ "$p" != 0 ]]; then
-      error ' CRITICAL '
-      warning "Log is at ${LOG_DIR}/${name}.err"
-      less ${LOG_DIR}/${name}.err
-      exit 1
-    fi
-  else
-    $cmd "$@" > ${LOG_DIR}/${name}.out 2> ${LOG_DIR}/${name}.err &
-    p_cmd=$!
-    wait $p_cmd 2>/dev/null
-    p=$?
-    cleanup $p
-    return $p
-  fi
+	local cmd critical p name p_cmd i overwrite tmp
+	reset_timer 1
+	$WORKING &
+	DOT=$!
+	critical=
+	overwrite=
+	for i in "$@"; do
+		case $i in
+		-c | --critical)
+			critical=YES
+			shift
+			;;
+		-o | --overwrite)
+			overwrite=YES
+			shift
+			;;
+		-[a-zA-Z0-9] | --*)
+			error "[task-logger] Option $i doesn't exists for log_cmd"
+			shift
+			;;
+		*)
+			# We got to the command
+			break
+			;;
+		esac
+	done
+	name="$1"
+	# check if name can be be used as a file
+	i=0
+	if [[ -z "$overwrite" ]]; then
+		tmp="$name"
+		while [[ -f "${LOG_DIR}/${name}.out" || -f "${LOG_DIR}/${name}.err" ]]; do
+			((i++))
+			name="$tmp-$i"
+		done
+	fi
+	cmd="$2"
+	shift
+	shift
+	if [[ "$critical" == YES ]]; then
+		$cmd "$@" >${LOG_DIR}/${name}.out 2>${LOG_DIR}/${name}.err &
+		p_cmd=$!
+		wait $p_cmd 2>/dev/null
+		p=$?
+		cleanup $p
+		if [[ "$p" != 0 ]]; then
+			error ' CRITICAL '
+			warning "Log is at ${LOG_DIR}/${name}.err"
+			less ${LOG_DIR}/${name}.err
+			exit 1
+		fi
+	else
+		$cmd "$@" >${LOG_DIR}/${name}.out 2>${LOG_DIR}/${name}.err &
+		p_cmd=$!
+		wait $p_cmd 2>/dev/null
+		p=$?
+		cleanup $p
+		return $p
+	fi
 }
 
 # Helper function that should be called at the end.
 # Prints a summary with the number of errors, warnings and successes
 # If there are no errors, cleanup the whole log directory
 finish() {
-  local no_cleanup force_cleanup
-  for i in "$@"; do
-    case $i in
-      -c|--no-cleanup)
-        no_cleanup=YES
-        shift
-        ;;
-      -f|--force-cleanup)
-        force_cleanup=YES
-        shift
-        ;;
-      *)
-        ;;
-    esac
-  done
-  info -n "[$(date +%H:%M:%S)] "
-  echo "Finished: ${END_GOOD_COLOR}$SUCCESS ✓ ${END_WARNING_COLOR}$WARNINGS ⚠ ${END_BAD_COLOR}$ERRORS ✗${RESET_COLOR}"
-  if test "$force_cleanup" -o \( "$ERRORS" -le 0 -a ! "$no_cleanup" \); then
-    tmp_cleanup
-  fi
-  show_cursor
+	local no_cleanup force_cleanup
+	for i in "$@"; do
+		case $i in
+		-c | --no-cleanup)
+			no_cleanup=YES
+			shift
+			;;
+		-f | --force-cleanup)
+			force_cleanup=YES
+			shift
+			;;
+		*) ;;
+
+		esac
+	done
+	info -n "[$(date +%H:%M:%S)] "
+	echo "Finished: ${END_GOOD_COLOR}$SUCCESS ✓ ${END_WARNING_COLOR}$WARNINGS ⚠ ${END_BAD_COLOR}$ERRORS ✗${RESET_COLOR}"
+	if test "$force_cleanup" -o \( "$ERRORS" -le 0 -a ! "$no_cleanup" \); then
+		tmp_cleanup
+	fi
+	show_cursor
 }
 
 # Clean the tmp data. If your script run for a very long time you migth want
@@ -504,15 +513,15 @@ finish() {
 # This function may be called at any time and it is called by the finish
 # method if there were no errors
 tmp_cleanup() {
-  local dir
-  if [[ -n "$1" ]]; then
-    dir="$1"
-  else
-    dir="$LOG_DIR"
-  fi
-  if ! rm -rf "$dir"; then
-    bad "Error cleaning up the logs"
-  fi
+	local dir
+	if [[ -n "$1" ]]; then
+		dir="$1"
+	else
+		dir="$LOG_DIR"
+	fi
+	if ! rm -rf "$dir"; then
+		bad "Error cleaning up the logs"
+	fi
 }
 
 # Exit correctly with <C-C>
@@ -521,16 +530,26 @@ set_colors
 
 # Create a folder to redirect standard an error output
 new_log_dir() {
-  LOG_DIR=$(mktemp -d /tmp/task-logger-XXXXXXXX)
+	local temp prefix
+
+	test -n "$TMP_DIR" &&
+		temp="$TMP_DIR" ||
+		temp="/tmp"
+
+	test -n "$LOG_PREFIX" &&
+		prefix="$LOG_PREFIX" ||
+		prefix="task-logger"
+
+	LOG_DIR=$(mktemp -d ${temp}/${prefix}-XXXXXXXX)
 }
+
 new_log_dir
 hide_cursor
 
 # Reset global variables used for counting errors, warnings and successes
 # If you're calling finish multiple times you may need this
 reset_counters() {
-  ERRORS=0
-  WARNINGS=0
-  SUCCESS=0
+	ERRORS=0
+	WARNINGS=0
+	SUCCESS=0
 }
-
