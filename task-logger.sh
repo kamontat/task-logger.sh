@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# set -x
+
 # task-logger.sh 1.3.4 - zsh and bash fancy task logging
 # Copyright (C) 2015 Eduardo San Martin Morote
 # Last modification 2015-08-11
@@ -33,8 +35,32 @@
 # Inherit Previous License
 
 # Custom Variable
-# TMP_DIR => temp directory for placing log directory (default=/tmp)
-# LOG_PREFIX => log directory prefix (default=task-logger)
+
+# WORKING should be some kind of loop. It is executed whenever a command
+# is launched and can be customized. By default this variable will set to be circle
+# but there are several option:
+# circle => loop as circle waiting symbol (L)
+# spinner => using spinner as waiting symbol (L)
+# dot => wait by dot symbol (W)
+# sharp => wait by sharp symbol (W)
+# There are two type of working, Looping and Working
+# Looping (L) will replace the symbol in exact same place from previous symbol
+#             so this will act like the animation
+# Working (W) will place the symbol next previous once,
+#             so this will act like progress bar
+# There are also several variable can be replaced:
+# $LOOP_SECONDS to tell each progress seconds
+
+# temp directory for placing log directory (default=/tmp)
+test -z "$TMP_DIR" && TMP_DIR="/tmp"
+
+# log directory prefix (default=task-logger)
+test -z "$LOG_PREFIX" && LOG_PREFIX="task-logger"
+
+SUCCESS_SYMBOL="✓"
+ERROR_SYMBOL="✗"
+WARNING_SYMBOL="⚠"
+KILLED_SYMBOL="☠"
 
 # Counting for errors
 ERRORS=0
@@ -43,10 +69,11 @@ WARNINGS=0
 # Counting for successes
 SUCCESS=0
 
-SUCCESS_SYMBOL="✓"
-ERROR_SYMBOL="✗"
-WARNING_SYMBOL="⚠"
-KILLED_SYMBOL="☠"
+check_colors() {
+	local result
+	result=$(tput colors)
+	((result == 256))
+}
 
 # Set color variables. They can be overrided.
 set_colors() {
@@ -175,7 +202,7 @@ parse_opt() {
 	opts=()
 	io=1
 	ia=1
-	while [[ "$#" > 0 ]]; do #[[ "$1" =~ "$re" ]]; do
+	while (($# > 0)); do # [[ "$1" =~ "$re" ]]; do
 		if [[ "$1" =~ $re ]]; then
 			opts[$io]=$1
 			((io++))
@@ -187,62 +214,62 @@ parse_opt() {
 	done
 }
 
-# WORKING should be some kind of loop. It is executed whenever a command
-# is launched and can be customized. By default there are two options:
-# dot_working and turning_circle. The last one being the default. To use your
-# own loop just set WORKING to the function or program. Additionally you must
-# also set WORKING_END to anything you want to call after the main loop is
-# killed. For example I use to replace the cursor. You can set it to true or
-# any other command that do not print anything
-WORKING=turning_circle
-WORKING_END=turning_circle_end
+WORKING=circle
 
-# How many seconds does a dot represent
-DOT_SECONDS=1
-# Print dots in order to show progress.
-# This functions should be called with & and killed when job is done
-# If you want to use this function, set WORKING to dot_working and
-# WORKING_END to true
-dot_working() {
+work_action() {
+	local time=1
+	test -n "$LOOP_SECONDS" && time="$LOOP_SECONDS"
 	while true; do
-		echo -n '.'
-		sleep $DOT_SECONDS
+		echo -n "$1"
+		sleep "$time"
 	done
 }
 
-# Prints a turning circle with unicode to show work is in progress
-turning_circle() {
-	local p n symbols
-	p=1
-	n=4
-	symbols=()
-	symbols[1]=" ◐ "
-	symbols[2]=" ◓ "
-	symbols[3]=" ◑ "
-	symbols[4]=" ◒ "
-
-	#trap 'printf "\033[5D "; return' SIGINT
-	#trap 'printf "\033[3D "; return' SIGHUP SIGTERM
+loop_action() {
+	local p=1 time=0.1 symbols=("$@") size="$#"
+	test -n "$LOOP_SECONDS" && time="$LOOP_SECONDS"
 
 	printf "   "
 	while true; do
-		printf "\033[3D${symbols[$p]}"
+		printf "\033[3D%s" "${symbols[$p]}"
 		((p++))
-		if [[ "$p" > "$n" ]]; then
-			# :nocov:
-			p=1
-			# :nocov:
-		fi
-		sleep 0.2
+		((p >= size)) && p=0
+		sleep "$time"
 	done
 }
 
-turning_circle_end() {
-	printf "\033[3D "
+loop_end() {
+	printf "\033[5D"
+}
+
+# Prints a turning circle with unicode to show work is in progress
+circle() {
+	WORKING_END=loop_end
+	loop_action " ◐ " " ◓ " " ◑ " " ◒ "
+}
+
+spinner() {
+	WORKING_END=loop_end
+	loop_action " ◜ " " ◠ " " ◝ " " ◞ " " ◡ " " ◟ "
+}
+
+random() {
+	WORKING_END=loop_end
+	loop_action " @ " " $ " " ^ " " * " " # " " % " " & "
+}
+
+dot() {
+	WORKING_END=true
+	work_action "."
+}
+
+sharp() {
+	WORKING_END=true
+	work_action "#"
 }
 
 # Check if perl is available
-if perl -e 'use Time::HiRes qw( gettimeofday );' 2>&1 >/dev/null; then
+if perl -e 'use Time::HiRes qw( gettimeofday );' &>/dev/null; then
 	PERL=YES
 fi
 
@@ -273,11 +300,10 @@ elif date '+%s %N' 2>&1 >/dev/null; then
 		nanoseconds=$(echo "${TIMER_INIT[$1]}" | cut -d ' ' -f 2)
 		((seconds = $(date '+%s') - seconds, nanoseconds = $(date '+%N' | sed 's/^00*//') - nanoseconds))
 
-		if [[ "$seconds" == 1 && "$nanoseconds" < 0 ]]; then
+		if ((seconds == 1)) && ((nanoseconds < 0)); then
 			((nanoseconds = seconds * 100000000 - nanoseconds, seconds = 0))
 
 		fi
-
 		echo "$seconds $nanoseconds"
 	}
 else
@@ -289,7 +315,7 @@ else
 		seconds="${TIMER_INIT[$1]}"
 		nanoseconds=0
 		((seconds = $(date '+%s') - seconds))
-		if [[ "$seconds" < 0 ]]; then
+		if ((seconds < 0)); then
 			seconds=0
 		fi
 		echo "$seconds $nanoseconds"
@@ -389,7 +415,7 @@ cleanup() {
 		$WORKING_END
 	fi
 	elapsed="$(get_timer 1)"
-	echo -n "[$(ptime $(echo "$elapsed"))]"
+	echo -n " [$(ptime $(echo "$elapsed"))]"
 	if [[ "$1" == 0 ]]; then
 		ok
 	fi
@@ -524,27 +550,10 @@ tmp_cleanup() {
 	fi
 }
 
-# Exit correctly with <C-C>
-trap 'killed' SIGINT SIGTERM
-set_colors
-
 # Create a folder to redirect standard an error output
 new_log_dir() {
-	local temp prefix
-
-	test -n "$TMP_DIR" &&
-		temp="$TMP_DIR" ||
-		temp="/tmp"
-
-	test -n "$LOG_PREFIX" &&
-		prefix="$LOG_PREFIX" ||
-		prefix="task-logger"
-
-	LOG_DIR=$(mktemp -d ${temp}/${prefix}-XXXXXXXX)
+	LOG_DIR=$(mktemp -d ${TMP_DIR}/${LOG_PREFIX}-XXXXXXXX)
 }
-
-new_log_dir
-hide_cursor
 
 # Reset global variables used for counting errors, warnings and successes
 # If you're calling finish multiple times you may need this
@@ -553,3 +562,12 @@ reset_counters() {
 	WARNINGS=0
 	SUCCESS=0
 }
+
+# Exit correctly with <C-C>
+trap 'killed' SIGINT SIGTERM
+
+check_colors &&
+	set_colors
+
+new_log_dir
+hide_cursor
